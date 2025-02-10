@@ -62,3 +62,29 @@ For some reason, it's become popular to put it at `050-09F` , so you can follow 
 > 0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
 >
 > 0xF0, 0x80, 0xF0, 0x80, 0x80 // F
+
+### Display
+
+The display is 64 pixels wide and 32 pixels tall. Each pixel can be on or off. In other words, each pixel is a boolean value, or a bit.
+The details of the drawing instruction DXYN are found below, but in short, it is used to draw a “sprite” on the screen. Each sprite consists of 8-bit bytes, where each bit corresponds to a horizontal pixel; sprites are between 1 and 15 bytes tall. They’re drawn to the screen by treating all 0 bits as transparent, and all the 1 bits will “flip” the pixels in the locations of the screen that it’s drawn to. (You might recognize this as logical XOR.)
+
+### Stack
+
+CHIP-8 has a stack. You can represent it however you’d like; a stack if your programming language has it, or an array. CHIP-8 uses it to call and return from subroutines and nothing else, so you will be saving addresses there; 16-bit numbers.
+
+### Timer
+
+There are two separate timer registers: The delay timer and the sound timer. They both work the same way; they’re one byte in size, and as long as their value is above 0, they should be decremented by one 60 times per second (ie. at 60 Hz). This is independent of the speed of the fetch/decode/execute loop below.
+The sound timer is special in that it should make the computer “beep” as long as it’s above 0.
+
+### Keypad
+
+The earliest computers that CHIP-8 were used with had hexadecimal keypads. These had 16 keys, labelled 0 through F, and were arranged in a 4x4 grid.
+
+### Fetch/decode/execute loop
+
+An emulator’s main task is simple. It runs in an infinite loop, and does these three tasks in succession:
+
+- **Fetch** the instruction from memory at the current PC (program counter)
+- **Decode** the instruction to find out what the emulator should do
+- **Execute** the instruction and do what it tells you
