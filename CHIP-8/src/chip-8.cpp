@@ -6,6 +6,7 @@
 #include <random>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 #include "chip-8.h"
 
