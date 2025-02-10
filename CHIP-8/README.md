@@ -11,7 +11,7 @@ currently hard-coded to run the screen at 60Hz and the CPU at 700Hz, but those v
 > install sdl2
 > install cmake
 
-```
+```bash
 mkdir build
 cd build
 cmake ../
@@ -20,7 +20,7 @@ make
 
 ### Usage
 
-```
+```bash
 ./chip8 ../roms/<rom_file_name>
 ```
 
@@ -38,6 +38,7 @@ z x c v
 Apologies to anyone with a non-QWERTY keyboard...
 
 `<Esc>` to quit.
+
 `<F1>` to restart.
 
 ## Credits
