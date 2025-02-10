@@ -6,6 +6,11 @@ There's nothing particularly special about this CHIP-8 emulator, but it does aim
 of the sub-systems. For example, it aims to run the exact number of CPU cycles before drawing the screen. It's
 currently hard-coded to run the screen at 60Hz and the CPU at 700Hz, but those values are easy enough to change.
 
+### ScreenShots
+
+![GamePlay ScreenShot](./img/Landing.png)
+![GamePlay ScreenShot](./img/Cave.png)
+
 ### Build
 
 > install sdl2
