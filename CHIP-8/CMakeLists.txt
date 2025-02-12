@@ -19,10 +19,12 @@ project(chip8 VERSION 1.0)
 
 find_package(SDL2 REQUIRED)
 
+set(RESOURCE_PATH "${CMAKE_SOURCE_DIR}/roms")
+add_compile_definitions(RESOURCE_PATH="${RESOURCE_PATH}")
+
+
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 add_executable(chip8 ${SOURCE_FILES})
-
-
 
 INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIRS})
 TARGET_LINK_LIBRARIES(chip8 ${SDL2_LIBRARIES})

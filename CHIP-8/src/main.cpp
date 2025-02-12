@@ -18,8 +18,8 @@
 
 // Keypad keymap
 uint8_t keymap[16] = {
-    SDLK_1, SDLK_2, SDLK_3, SDLK_4, SDLK_q, SDLK_w, SDLK_e, SDLK_r,
-    SDLK_a, SDLK_s, SDLK_d, SDLK_f, SDLK_z, SDLK_x, SDLK_c, SDLK_v,
+    SDLK_x, SDLK_1, SDLK_2, SDLK_3, SDLK_q, SDLK_w, SDLK_e, SDLK_a,
+    SDLK_s, SDLK_d, SDLK_z, SDLK_c, SDLK_4, SDLK_r, SDLK_f, SDLK_v,
 };
 
 int main(int argc, char** argv)
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 
 load:
   // Attempt to load ROM
-  if (!chip8.load(argv[1]))
+  if (!chip8.load(std::string(RESOURCE_PATH) + "/" + argv[1]))
     return 2;
 
   // Emulate loop
@@ -122,6 +122,6 @@ load:
       SDL_RenderPresent(renderer);
     }
     // Sleep to slow down emulation speed
-    std::this_thread::sleep_for(std::chrono::microseconds(1200));
+    std::this_thread::sleep_for(std::chrono::microseconds(2000));
   }
 }

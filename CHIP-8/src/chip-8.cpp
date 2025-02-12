@@ -6,7 +6,6 @@
 #include <random>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string>
 
 #include "chip-8.h"
 
@@ -74,13 +73,13 @@ void CHIP8::init()
 }
 
 // Initlialize and Load ROM into memory
-bool CHIP8::load(const char* file_path)
+bool CHIP8::load(const std::string& file_path)
 {
   init();
-  printf("Loading ROM: %s\n", file_path);
+  printf("Loading ROM: %s\n", file_path.c_str());
 
   // Open ROM file
-  FILE* rom = fopen(file_path, "rb");
+  FILE* rom = fopen(file_path.c_str(), "rb");
   if (rom == NULL)
   {
     std::cerr << "Failed to open ROM " << std::endl;

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <stdint.h>
+#include <string>
 
 class CHIP8
 {
@@ -15,7 +16,7 @@ public:
   ~CHIP8();
 
   void emulate_cycle();
-  bool load(const char* file_path);
+  bool load(const std::string& file_path);
 
 protected:
 private:
