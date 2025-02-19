@@ -156,6 +156,8 @@ private:
     uint8_t cycles = 0; // Cycle count
   };
 
+  std::vector<INSTRUCTION> lookup;
+
 #ifdef LOGMODE
   FILE* logfile = nullptr;
 #endif // LOGMODE
