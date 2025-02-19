@@ -62,7 +62,7 @@ private:
 
   // ADDRESSING MODES ===================
   uint8_t IMP();
-  uint8_t IMN();
+  uint8_t IMM();
   uint8_t ZPO();
   uint8_t ZPX();
   uint8_t ZPY();
