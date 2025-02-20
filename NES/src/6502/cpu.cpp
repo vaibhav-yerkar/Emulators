@@ -478,6 +478,148 @@ uint8_t cpu6502::BCS() // Branch if Carry Set
   }
   return 0;
 }
+uint8_t cpu6502::BEQ() // Branch if Equal
+{
+  if (getFlag(Z) == 1)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
+}
+uint8_t cpu6502::BIT() // Bit Test
+{
+  fetch();
+  temp = a & fetched;
+  setFlag(Z, (temp & 0x00FF) == 0x00);
+  setFlag(N, fetched & (1 << 7));
+  setFlag(V, fetched & (1 << 6));
+  return 0;
+}
+uint8_t cpu6502::BMI() // Branch if Minus(Negative)
+{
+  if (getFlag(N) == 1)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
+}
+uint8_t cpu6502::BNE() // Branch if not Equal
+{
+  if (getFlag(Z) == 0)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
+}
+uint8_t cpu6502::BPL() // Branch if Positive
+{
+  if (getFlag(N) == 0)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
+}
+uint8_t cpu6502::BRK() // Break
+{
+  pc++;
+  setFlag(I, 1);
+  write(0x0100 + sp, (pc >> 8) & 0x00FF);
+  sp--;
+  write(0x0100 + sp, pc & 0x00FF);
+  sp--;
+  setFlag(B, 1);
+  write(0x0100 + sp, status);
+  sp--;
+  pc = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
+  return 0;
+}
+uint8_t cpu6502::BVC() // Branch if Overflow Clear
+{
+  if (getFlag(V) == 0)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
+}
+uint8_t cpu6502::BVS() // Branch if Overflow Set
+{
+  if (getFlag(V) == 1)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
+}
+uint8_t cpu6502::CLC() // Clear Carry Flag
+{
+  setFlag(C, false);
+  return 0;
+}
+uint8_t cpu6502::CLD() // Clear Decimal Flag
+{
+  setFlag(D, false);
+  return 0;
+}
+uint8_t cpu6502::CLI() // Clear Interrupt Flag
+{
+  setFlag(I, false);
+  return 0;
+}
+uint8_t cpu6502::CLV() // Clear Overflow Flag
+{
+  setFlag(V, false);
+  return 0;
+}
+uint8_t cpu6502::CMP() // Compare Accumulator
+{
+  fetch();
+  temp = (uint16_t)a - (uint16_t)fetched;
+  setFlag(C, a >= fetched);
+  setFlag(Z, (temp & 0x00FF) == 0x0000);
+  setFlag(N, temp & 0x0080);
+  return 1;
+}
+uint8_t cpu6502::CPX() // Compare X Register
+{
+  fetch();
+  temp = (uint16_t)x - (uint16_t)fetched;
+  setFlag(C, x >= fetched);
+  setFlag(Z, (temp & 0x00FF) == 0x0000);
+  setFlag(N, temp & 0x0080);
+  return 1;
+}
+uint8_t cpu6502::CPY() // Compare Y Register
+{
+  fetch();
+  temp = (uint16_t)y - (uint16_t)fetched;
+  setFlag(C, y >= fetched);
+  setFlag(Z, (temp & 0x00FF) == 0x0000);
+  setFlag(N, temp & 0x0080);
+  return 1;
+}
 uint8_t cpu6502::SBC() // Subtract wuth Borrow In
 {
   fetch();
