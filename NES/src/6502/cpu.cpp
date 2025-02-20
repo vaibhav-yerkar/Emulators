@@ -444,6 +444,39 @@ uint8_t cpu6502::AND() // Bitwise logic AND
 uint8_t cpu6502::ASL() // Arithmetic Shift Left
 {
   fetch();
+  temp = (uint16_t)fetched << 1;
+  setFlag(C, (temp & 0xFF00) > 0);
+  setFlag(Z, (temp & 0x00FF) == 0x00);
+  setFlag(N, temp & 0x80);
+  if (lookup[opcode].addrmode == &cpu6502::IMP)
+    a = temp & 0x00FF;
+  else
+    write(abs_addr, temp & 0x00FF);
+  return 0;
+}
+uint8_t cpu6502::BCC() // Branch if Carry Clear
+{
+  if (getFlag(C) == 0)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
+}
+uint8_t cpu6502::BCS() // Branch if Carry Set
+{
+  if (getFlag(C) == 1)
+  {
+    cycles++;
+    abs_addr = pc + rel_addr;
+    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+    pc = abs_addr;
+  }
+  return 0;
 }
 uint8_t cpu6502::SBC() // Subtract wuth Borrow In
 {
