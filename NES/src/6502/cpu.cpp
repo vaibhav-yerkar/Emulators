@@ -912,3 +912,121 @@ uint8_t cpu6502::XXX() // Capture Illegal opcodes
 {
   return 0;
 }
+
+bool cpu6502::complete()
+{
+  return cycles == 0;
+}
+
+std::map<uint16_t, std::string> cpu6502::disassemble(uint16_t nStart, uint16_t nStop)
+{
+  uint32_t addr = nStart;
+  uint8_t value = 0x00, low = 0x00, high = 0x00;
+  std::map<uint16_t, std::string> mapLines;
+  uint16_t line_addr = 0;
+
+  auto hex = [](uint32_t n, uint8_t d)
+  {
+    std::string s(d, '0');
+    for (int i = d - 1; i >= 0; i--, n >>= 4)
+      s[i] = "0123456789ABCDEF"[n & 0xF];
+    return s;
+  };
+
+  while (addr <= (uint32_t)nStop)
+  {
+    line_addr = addr;
+    // Prefix line with instruction address
+    std::string sInt = "$" + hex(addr, 4) + ": ";
+    // Read instruction and gets it's readable name
+    uint8_t opcode = bus->read(addr, true);
+    addr++;
+    sInt += lookup[opcode].name + " ";
+
+    if (lookup[opcode].addrmode == &cpu6502::IMP)
+    {
+      sInt += " {IMP}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::IMM)
+    {
+      value = bus->read(addr, true);
+      addr++;
+      sInt += "#$" + hex(value, 2) + " {IMM}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::ZP0)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = 0x00;
+      sInt += "$" + hex(low, 2) + " {ZP0}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::ZPX)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = 0x00;
+      sInt += "$" + hex(low, 2) + ", X {ZPX}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::ZPY)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = 0x00;
+      sInt += "$" + hex(low, 2) + ", Y {ZPY}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::IZX)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = 0x00;
+      sInt += "($" + hex(low, 2) + ", X) {IZX}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::IZY)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = 0x00;
+      sInt += "($" + hex(low, 2) + "), Y {IZY}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::ABS)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = bus->read(addr, true);
+      addr++;
+      sInt += "$" + hex((uint16_t)(high << 8) | low, 4) + " {ABS}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::ABX)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = bus->read(addr, true);
+      addr++;
+      sInt += "$" + hex((uint16_t)(high << 8) | low, 4) + ", X {ABX}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::ABY)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = bus->read(addr, true);
+      addr++;
+      sInt += "$" + hex((uint16_t)(high << 8) | low, 4) + ", Y {ABY}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::IND)
+    {
+      low = bus->read(addr, true);
+      addr++;
+      high = bus->read(addr, true);
+      addr++;
+      sInt += "($" + hex((uint16_t)(high << 8) | low, 4) + ") {IND}";
+    }
+    else if (lookup[opcode].addrmode == &cpu6502::REL)
+    {
+      value = bus->read(addr, true);
+      addr++;
+      sInt += "$" + hex(value, 2) + "[$" + hex(addr + value, 4) + "] {REL}";
+    }
+    mapLines[line_addr] = sInt;
+  }
+  return mapLines;
+}
