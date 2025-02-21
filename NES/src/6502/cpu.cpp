@@ -620,6 +620,212 @@ uint8_t cpu6502::CPY() // Compare Y Register
   setFlag(N, temp & 0x0080);
   return 1;
 }
+uint8_t cpu6502::DEC() // Decrement value at Memory location
+{
+  fetch();
+  temp = fetched - 1;
+  write(abs_addr, temp & 0x00FF);
+  setFlag(Z, (temp & 0x00FF) == 0x0000);
+  setFlag(N, temp & 0x0080);
+  return 0;
+}
+uint8_t cpu6502::DEX() // Decrement X Register
+{
+  x--;
+  setFlag(Z, x == 0x00);
+  setFlag(N, x & 0x80);
+  return 0;
+}
+uint8_t cpu6502::DEY() // Decrement Y Register
+{
+  y--;
+  setFlag(Z, y == 0x00);
+  setFlag(N, y & 0x80);
+  return 0;
+}
+uint8_t cpu6502::EOR() // Bitwise Logic XOR
+{
+  fetch();
+  a ^= fetched;
+  setFlag(Z, a == 0x00);
+  setFlag(N, a & 0x80);
+  return 1;
+}
+uint8_t cpu6502::INC() // Increment Value at Memory Location
+{
+  fetch();
+  temp = fetched + 1;
+  write(abs_addr, temp & 0x00FF);
+  setFlag(Z, (temp & 0x00FF) == 0x0000);
+  setFlag(N, temp & 0x0080);
+  return 0;
+}
+uint8_t cpu6502::INX() // Increment X Register
+{
+  x++;
+  setFlag(Z, x == 0x00);
+  setFlag(N, x & 0x80);
+  return 0;
+}
+uint8_t cpu6502::INY() // Increment Y Register
+{
+  y++;
+  setFlag(Z, y == 0x00);
+  setFlag(N, y & 0x80);
+  return 0;
+}
+uint8_t cpu6502::JMP() // Jump to Location
+{
+  pc = abs_addr;
+  return 0;
+}
+uint8_t cpu6502::JSR() // Jump to Sub-Routine
+{
+  pc--;
+  write(0x0100 + sp, (pc >> 8) & 0x00FF);
+  sp--;
+  write(0x0100 + sp, pc & 0x00FF);
+  sp--;
+  pc = abs_addr;
+  return 0;
+}
+uint8_t cpu6502::LDA() // Load Accumulator
+{
+  fetch();
+  a = fetched;
+  setFlag(Z, a == 0x00);
+  setFlag(N, a & 0x80);
+  return 1;
+}
+uint8_t cpu6502::LDX() // Load X Register
+{
+  fetch();
+  x = fetched;
+  setFlag(Z, x == 0x00);
+  setFlag(N, x & 0x80);
+  return 1;
+}
+uint8_t cpu6502::LDY() // Load Y Register
+{
+  fetch();
+  y = fetched;
+  setFlag(Z, y == 0x00);
+  setFlag(N, y & 0x80);
+  return 1;
+}
+uint8_t cpu6502::LSR() // Logical Shift Right
+{
+  fetch();
+  setFlag(C, fetched & 0x0001);
+  temp = fetched >> 1;
+  setFlag(Z, (temp & 0x00FF) == 0x0000);
+  setFlag(N, temp & 0x0080);
+  if (lookup[opcode].addrmode == &cpu6502::IMP)
+    a = temp & 0x00FF;
+  else
+    write(abs_addr, temp & 0x00FF);
+  return 0;
+}
+uint8_t cpu6502::NOP() // No Operation
+{
+  // NOP has no effect; it merely wastes space and CPU cycles.
+  switch (opcode)
+  {
+  case 0x1C:
+  case 0x3C:
+  case 0x5C:
+  case 0x7C:
+  case 0xDC:
+  case 0xFC:
+    return 1;
+    break;
+  }
+  return 0;
+}
+uint8_t cpu6502::ORA() // Bitwise Logical OR
+{
+  fetch();
+  a |= fetched;
+  setFlag(Z, a == 0x00);
+  setFlag(N, a & 0x80);
+  return 1;
+}
+uint8_t cpu6502::PHA() // Push Accumulator to Stack
+{
+  write(0x0100 + sp, a);
+  sp--;
+  return 0;
+}
+uint8_t cpu6502::PHP() // Push Status Register to Stack
+{
+  write(0x0100 + sp, status | B | U);
+  setFlag(B, 0);
+  setFlag(U, 0);
+  sp--;
+  return 0;
+}
+uint8_t cpu6502::PLA() // Pop Accumulator off Stack
+{
+  sp++;
+  a = read(0x0100 + sp);
+  setFlag(Z, a == 0x00);
+  setFlag(N, a & 0x80);
+  return 0;
+}
+uint8_t cpu6502::PLP() // Pop Status Register off Stack
+{
+  sp++;
+  status = read(0x0100 + sp);
+  setFlag(U, 1);
+  return 0;
+}
+uint8_t cpu6502::ROL() // Rotate Left
+{
+  fetch();
+  temp = (uint16_t)(fetched << 1) | getFlag(C);
+  setFlag(C, temp & 0xFF00);
+  setFlag(Z, (temp & 0x00FF) == 0x0000);
+  setFlag(N, temp & 0x0080);
+  if (lookup[opcode].addrmode == &cpu6502::IMP)
+    a = temp & 0x00FF;
+  else
+    write(abs_addr, temp & 0x00FF);
+  return 0;
+}
+uint8_t cpu6502::ROR() // Rotate Right
+{
+  fetch();
+  temp = (uint16_t)(getFlag(C) << 7) | (fetched >> 1);
+  setFlag(C, fetched & 0x01);
+  setFlag(Z, (temp & 0x00FF) == 0x00);
+  setFlag(N, temp & 0x0080);
+  if (lookup[opcode].addrmode == &cpu6502::IMP)
+    a = temp & 0x00FF;
+  else
+    write(abs_addr, temp & 0x00FF);
+  return 0;
+}
+uint8_t cpu6502::RTI() // Return From Interrupt
+{
+  sp++;
+  status = read(0x0100 + sp);
+  status &= ~B;
+  status &= ~U;
+  sp++;
+  pc = (uint16_t)read(0x0100 + sp);
+  sp++;
+  pc |= (uint16_t)read(0x0100 + sp) << 8;
+  return 0;
+}
+uint8_t cpu6502::RTS() // Return From Sub-Routine
+{
+  sp++;
+  pc = (uint16_t)read(0x0100 + sp);
+  sp++;
+  pc |= (uint16_t)read(0x0100 + sp) << 8;
+  pc++;
+  return 0;
+}
 uint8_t cpu6502::SBC() // Subtract wuth Borrow In
 {
   fetch();
@@ -631,4 +837,78 @@ uint8_t cpu6502::SBC() // Subtract wuth Borrow In
   setFlag(N, temp & 0x0080);
   a = temp & 0x00FF;
   return 1;
+}
+uint8_t cpu6502::SEC() // Set Carry Flag
+{
+  setFlag(C, true);
+  return 0;
+}
+uint8_t cpu6502::SED() // Set Decimal Flag
+{
+  setFlag(D, true);
+  return 0;
+}
+uint8_t cpu6502::SEI() // Set Interrupt Flag
+{
+  setFlag(I, true);
+  return 0;
+}
+uint8_t cpu6502::STA() // Store Accumulator at Address
+{
+  write(abs_addr, a);
+  return 0;
+}
+uint8_t cpu6502::STX() // Store X register at Address
+{
+  write(abs_addr, x);
+  return 0;
+}
+uint8_t cpu6502::STY() // Store Y register at Address
+{
+  write(abs_addr, y);
+  return 0;
+}
+uint8_t cpu6502::TAX() // Transfer Accumulator to X Register
+{
+  x = a;
+  setFlag(Z, x == 0x00);
+  setFlag(N, x & 0x80);
+  return 0;
+}
+uint8_t cpu6502::TAY() // Transfer Accumulator to Y Register
+{
+  y = a;
+  setFlag(Z, y == 0x00);
+  setFlag(N, y & 0x80);
+  return 0;
+}
+uint8_t cpu6502::TSX() // Transfer Stack Pointer to X Register
+{
+  x = sp;
+  setFlag(Z, x == 0x00);
+  setFlag(N, x & 0x80);
+  return 0;
+}
+uint8_t cpu6502::TXA() // Transfer X Register to Accumulator
+{
+  a = x;
+  setFlag(Z, a == 0x00);
+  setFlag(N, a & 0x80);
+  return 0;
+}
+uint8_t cpu6502::TXS() // Transfer X Register to Stack Pointer
+{
+  sp = x;
+  return 0;
+}
+uint8_t cpu6502::TYA() // Transfer Y Register to Accumulator
+{
+  a = y;
+  setFlag(Z, a == 0x00);
+  setFlag(N, a & 0x80);
+  return 0;
+}
+uint8_t cpu6502::XXX() // Capture Illegal opcodes
+{
+  return 0;
 }
