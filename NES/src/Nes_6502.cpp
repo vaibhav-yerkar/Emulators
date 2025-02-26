@@ -38,7 +38,7 @@ public:
         nAddr += 1;
       }
       DrawString(nRamX, nRamY, sOffset);
-      nRamY += 30;
+      nRamY += 10;
     }
   }
 
@@ -76,14 +76,14 @@ public:
       }
     }
 
-    it_a = mapAsm.find(nes.cpu.a);
+    it_a = mapAsm.find(nes.cpu.pc);
     nLineY = (nLines >> 1) * 10 + y;
     if (it_a != mapAsm.end())
     {
       while (nLineY > y)
       {
         nLineY -= 10;
-        if (--it_a != mapAsm.end())
+        if (++it_a != mapAsm.end())
           DrawString(x, nLineY, (*it_a).second);
       }
     }
@@ -109,7 +109,7 @@ public:
     return true;
   }
 
-  bool OnUSerUpdate()
+  bool OnUserUpdate(float fElapsedTime)
   {
     Clear(olc::DARK_BLUE);
     if (GetKey(olc::Key::SPACE).bPressed)
@@ -143,7 +143,7 @@ private:
 int main()
 {
   Demo_6502 demo;
-  demo.Construct(680, 480, 2, 2);
+  demo.Construct(640, 400, 2, 2);
   demo.Start();
   return 0;
 }
