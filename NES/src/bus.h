@@ -1,5 +1,4 @@
 #pragma once
-
 #include <array>
 #include <cstdint>
 
@@ -8,15 +7,15 @@
 class Bus
 {
 public:
-  cpu6502 cpu;                        // Device on Bus
-  std::array<uint8_t, 64 * 1024> ram; // temp ram
-
   Bus();
   ~Bus();
 
-  void write(uint16_t addr, uint8_t data);
-  uint8_t read(uint16_t addr, bool readOnly = false);
+public: // Devices on bus
+  cpu6502 cpu;
 
-protected:
-private:
+  std::array<uint8_t, 64 * 1024> ram;
+
+public: // Bus Read & Write
+  void write(uint16_t addr, uint8_t data);
+  uint8_t read(uint16_t addr, bool bReadOnly = false);
 };

@@ -1,242 +1,227 @@
-#include "cpu.h"
+
 #include "../bus.h"
-#include <cstdint>
+#include "cpu.h"
 
 cpu6502::cpu6502()
 {
-  using cpu = cpu6502;
+  using a = cpu6502;
   lookup = {
-      {"BRK", &cpu::BRK, &cpu::IMM, 7}, {"ORA", &cpu::ORA, &cpu::IZX, 6},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 3}, {"ORA", &cpu::ORA, &cpu::ZP0, 3},
-      {"ASL", &cpu::ASL, &cpu::ZP0, 5}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"PHP", &cpu::PHP, &cpu::IMP, 3}, {"ORA", &cpu::ORA, &cpu::IMM, 2},
-      {"ASL", &cpu::ASL, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 2},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"ORA", &cpu::ORA, &cpu::ABS, 4},
-      {"ASL", &cpu::ASL, &cpu::ABS, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-
-      {"BPL", &cpu::BPL, &cpu::REL, 2}, {"ORA", &cpu::ORA, &cpu::IZY, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"ORA", &cpu::ORA, &cpu::ZPX, 4},
-      {"ASL", &cpu::ASL, &cpu::ZPX, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"CLC", &cpu::CLC, &cpu::IMP, 2}, {"ORA", &cpu::ORA, &cpu::ABY, 4},
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 7},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"ORA", &cpu::ORA, &cpu::ABX, 4},
-      {"ASL", &cpu::ASL, &cpu::ABX, 7}, {"???", &cpu::XXX, &cpu::IMP, 7},
-
-      {"JSR", &cpu::JSR, &cpu::ABS, 6}, {"AND", &cpu::AND, &cpu::IZX, 6},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"BIT", &cpu::BIT, &cpu::ZP0, 3}, {"AND", &cpu::AND, &cpu::ZP0, 3},
-      {"ROL", &cpu::ROL, &cpu::ZP0, 5}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"PLP", &cpu::PLP, &cpu::IMP, 4}, {"AND", &cpu::AND, &cpu::IMM, 2},
-      {"ROL", &cpu::ROL, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 2},
-      {"BIT", &cpu::BIT, &cpu::ABS, 4}, {"AND", &cpu::AND, &cpu::ABS, 4},
-      {"ROL", &cpu::ROL, &cpu::ABS, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-
-      {"BMI", &cpu::BMI, &cpu::REL, 2}, {"AND", &cpu::AND, &cpu::IZY, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"AND", &cpu::AND, &cpu::ZPX, 4},
-      {"ROL", &cpu::ROL, &cpu::ZPX, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"SEC", &cpu::SEC, &cpu::IMP, 2}, {"AND", &cpu::AND, &cpu::ABY, 4},
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 7},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"AND", &cpu::AND, &cpu::ABX, 4},
-      {"ROL", &cpu::ROL, &cpu::ABX, 7}, {"???", &cpu::XXX, &cpu::IMP, 7},
-
-      {"RTI", &cpu::RTI, &cpu::IMP, 6}, {"EOR", &cpu::EOR, &cpu::IZX, 6},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 3}, {"EOR", &cpu::EOR, &cpu::ZP0, 3},
-      {"LSR", &cpu::LSR, &cpu::ZP0, 5}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"PHA", &cpu::PHA, &cpu::IMP, 3}, {"EOR", &cpu::EOR, &cpu::IMM, 2},
-      {"LSR", &cpu::LSR, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 2},
-      {"JMP", &cpu::JMP, &cpu::ABS, 3}, {"EOR", &cpu::EOR, &cpu::ABS, 4},
-      {"LSR", &cpu::LSR, &cpu::ABS, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-
-      {"BVC", &cpu::BVC, &cpu::REL, 2}, {"EOR", &cpu::EOR, &cpu::IZY, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"EOR", &cpu::EOR, &cpu::ZPX, 4},
-      {"LSR", &cpu::LSR, &cpu::ZPX, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"CLI", &cpu::CLI, &cpu::IMP, 2}, {"EOR", &cpu::EOR, &cpu::ABY, 4},
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 7},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"EOR", &cpu::EOR, &cpu::ABX, 4},
-      {"LSR", &cpu::LSR, &cpu::ABX, 7}, {"???", &cpu::XXX, &cpu::IMP, 7},
-
-      {"RTS", &cpu::RTS, &cpu::IMP, 6}, {"ADC", &cpu::ADC, &cpu::IZX, 6},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 3}, {"ADC", &cpu::ADC, &cpu::ZP0, 3},
-      {"ROR", &cpu::ROR, &cpu::ZP0, 5}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"PLA", &cpu::PLA, &cpu::IMP, 4}, {"ADC", &cpu::ADC, &cpu::IMM, 2},
-      {"ROR", &cpu::ROR, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 2},
-      {"JMP", &cpu::JMP, &cpu::IND, 5}, {"ADC", &cpu::ADC, &cpu::ABS, 4},
-      {"ROR", &cpu::ROR, &cpu::ABS, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-
-      {"BVS", &cpu::BVS, &cpu::REL, 2}, {"ADC", &cpu::ADC, &cpu::IZY, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"ADC", &cpu::ADC, &cpu::ZPX, 4},
-      {"ROR", &cpu::ROR, &cpu::ZPX, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"SEI", &cpu::SEI, &cpu::IMP, 2}, {"ADC", &cpu::ADC, &cpu::ABY, 4},
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 7},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"ADC", &cpu::ADC, &cpu::ABX, 4},
-      {"ROR", &cpu::ROR, &cpu::ABX, 7}, {"???", &cpu::XXX, &cpu::IMP, 7},
-
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"STA", &cpu::STA, &cpu::IZX, 6},
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"STY", &cpu::STY, &cpu::ZP0, 3}, {"STA", &cpu::STA, &cpu::ZP0, 3},
-      {"STX", &cpu::STX, &cpu::ZP0, 3}, {"???", &cpu::XXX, &cpu::IMP, 3},
-      {"DEY", &cpu::DEY, &cpu::IMP, 2}, {"???", &cpu::NOP, &cpu::IMP, 2},
-      {"TXA", &cpu::TXA, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 2},
-      {"STY", &cpu::STY, &cpu::ABS, 4}, {"STA", &cpu::STA, &cpu::ABS, 4},
-      {"STX", &cpu::STX, &cpu::ABS, 4}, {"???", &cpu::XXX, &cpu::IMP, 4},
-
-      {"BCC", &cpu::BCC, &cpu::REL, 2}, {"STA", &cpu::STA, &cpu::IZY, 6},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"STY", &cpu::STY, &cpu::ZPX, 4}, {"STA", &cpu::STA, &cpu::ZPX, 4},
-      {"STX", &cpu::STX, &cpu::ZPY, 4}, {"???", &cpu::XXX, &cpu::IMP, 4},
-      {"TYA", &cpu::TYA, &cpu::IMP, 2}, {"STA", &cpu::STA, &cpu::ABY, 5},
-      {"TXS", &cpu::TXS, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"???", &cpu::NOP, &cpu::IMP, 5}, {"STA", &cpu::STA, &cpu::ABX, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 5}, {"???", &cpu::XXX, &cpu::IMP, 5},
-
-      {"LDY", &cpu::LDY, &cpu::IMM, 2}, {"LDA", &cpu::LDA, &cpu::IZX, 6},
-      {"LDX", &cpu::LDX, &cpu::IMM, 2}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"LDY", &cpu::LDY, &cpu::ZP0, 3}, {"LDA", &cpu::LDA, &cpu::ZP0, 3},
-      {"LDX", &cpu::LDX, &cpu::ZP0, 3}, {"???", &cpu::XXX, &cpu::IMP, 3},
-      {"TAY", &cpu::TAY, &cpu::IMP, 2}, {"LDA", &cpu::LDA, &cpu::IMM, 2},
-      {"TAX", &cpu::TAX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 2},
-      {"LDY", &cpu::LDY, &cpu::ABS, 4}, {"LDA", &cpu::LDA, &cpu::ABS, 4},
-      {"LDX", &cpu::LDX, &cpu::ABS, 4}, {"???", &cpu::XXX, &cpu::IMP, 4},
-
-      {"BCS", &cpu::BCS, &cpu::REL, 2}, {"LDA", &cpu::LDA, &cpu::IZY, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"LDY", &cpu::LDY, &cpu::ZPX, 4}, {"LDA", &cpu::LDA, &cpu::ZPX, 4},
-      {"LDX", &cpu::LDX, &cpu::ZPY, 4}, {"???", &cpu::XXX, &cpu::IMP, 4},
-      {"CLV", &cpu::CLV, &cpu::IMP, 2}, {"LDA", &cpu::LDA, &cpu::ABY, 4},
-      {"TSX", &cpu::TSX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 4},
-      {"LDY", &cpu::LDY, &cpu::ABX, 4}, {"LDA", &cpu::LDA, &cpu::ABX, 4},
-      {"LDX", &cpu::LDX, &cpu::ABY, 4}, {"???", &cpu::XXX, &cpu::IMP, 4},
-
-      {"CPY", &cpu::CPY, &cpu::IMM, 2}, {"CMP", &cpu::CMP, &cpu::IZX, 6},
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"CPY", &cpu::CPY, &cpu::ZP0, 3}, {"CMP", &cpu::CMP, &cpu::ZP0, 3},
-      {"DEC", &cpu::DEC, &cpu::ZP0, 5}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"INY", &cpu::INY, &cpu::IMP, 2}, {"CMP", &cpu::CMP, &cpu::IMM, 2},
-      {"DEX", &cpu::DEX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 2},
-      {"CPY", &cpu::CPY, &cpu::ABS, 4}, {"CMP", &cpu::CMP, &cpu::ABS, 4},
-      {"DEC", &cpu::DEC, &cpu::ABS, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-
-      {"BNE", &cpu::BNE, &cpu::REL, 2}, {"CMP", &cpu::CMP, &cpu::IZY, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"CMP", &cpu::CMP, &cpu::ZPX, 4},
-      {"DEC", &cpu::DEC, &cpu::ZPX, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"CLD", &cpu::CLD, &cpu::IMP, 2}, {"CMP", &cpu::CMP, &cpu::ABY, 4},
-      {"NOP", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 7},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"CMP", &cpu::CMP, &cpu::ABX, 4},
-      {"DEC", &cpu::DEC, &cpu::ABX, 7}, {"???", &cpu::XXX, &cpu::IMP, 7},
-
-      {"CPX", &cpu::CPX, &cpu::IMM, 2}, {"SBC", &cpu::SBC, &cpu::IZX, 6},
-      {"???", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"CPX", &cpu::CPX, &cpu::ZP0, 3}, {"SBC", &cpu::SBC, &cpu::ZP0, 3},
-      {"INC", &cpu::INC, &cpu::ZP0, 5}, {"???", &cpu::XXX, &cpu::IMP, 5},
-      {"INX", &cpu::INX, &cpu::IMP, 2}, {"SBC", &cpu::SBC, &cpu::IMM, 2},
-      {"NOP", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::SBC, &cpu::IMP, 2},
-      {"CPX", &cpu::CPX, &cpu::ABS, 4}, {"SBC", &cpu::SBC, &cpu::ABS, 4},
-      {"INC", &cpu::INC, &cpu::ABS, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-
-      {"BEQ", &cpu::BEQ, &cpu::REL, 2}, {"SBC", &cpu::SBC, &cpu::IZY, 5},
-      {"???", &cpu::XXX, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 8},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"SBC", &cpu::SBC, &cpu::ZPX, 4},
-      {"INC", &cpu::INC, &cpu::ZPX, 6}, {"???", &cpu::XXX, &cpu::IMP, 6},
-      {"SED", &cpu::SED, &cpu::IMP, 2}, {"SBC", &cpu::SBC, &cpu::ABY, 4},
-      {"NOP", &cpu::NOP, &cpu::IMP, 2}, {"???", &cpu::XXX, &cpu::IMP, 7},
-      {"???", &cpu::NOP, &cpu::IMP, 4}, {"SBC", &cpu::SBC, &cpu::ABX, 4},
-      {"INC", &cpu::INC, &cpu::ABX, 7}, {"???", &cpu::XXX, &cpu::IMP, 7},
+      {"BRK", &a::BRK, &a::IMM, 7}, {"ORA", &a::ORA, &a::IZX, 6},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 3}, {"ORA", &a::ORA, &a::ZP0, 3},
+      {"ASL", &a::ASL, &a::ZP0, 5}, {"???", &a::XXX, &a::IMP, 5},
+      {"PHP", &a::PHP, &a::IMP, 3}, {"ORA", &a::ORA, &a::IMM, 2},
+      {"ASL", &a::ASL, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 2},
+      {"???", &a::NOP, &a::IMP, 4}, {"ORA", &a::ORA, &a::ABS, 4},
+      {"ASL", &a::ASL, &a::ABS, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"BPL", &a::BPL, &a::REL, 2}, {"ORA", &a::ORA, &a::IZY, 5},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 4}, {"ORA", &a::ORA, &a::ZPX, 4},
+      {"ASL", &a::ASL, &a::ZPX, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"CLC", &a::CLC, &a::IMP, 2}, {"ORA", &a::ORA, &a::ABY, 4},
+      {"???", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 7},
+      {"???", &a::NOP, &a::IMP, 4}, {"ORA", &a::ORA, &a::ABX, 4},
+      {"ASL", &a::ASL, &a::ABX, 7}, {"???", &a::XXX, &a::IMP, 7},
+      {"JSR", &a::JSR, &a::ABS, 6}, {"AND", &a::AND, &a::IZX, 6},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"BIT", &a::BIT, &a::ZP0, 3}, {"AND", &a::AND, &a::ZP0, 3},
+      {"ROL", &a::ROL, &a::ZP0, 5}, {"???", &a::XXX, &a::IMP, 5},
+      {"PLP", &a::PLP, &a::IMP, 4}, {"AND", &a::AND, &a::IMM, 2},
+      {"ROL", &a::ROL, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 2},
+      {"BIT", &a::BIT, &a::ABS, 4}, {"AND", &a::AND, &a::ABS, 4},
+      {"ROL", &a::ROL, &a::ABS, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"BMI", &a::BMI, &a::REL, 2}, {"AND", &a::AND, &a::IZY, 5},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 4}, {"AND", &a::AND, &a::ZPX, 4},
+      {"ROL", &a::ROL, &a::ZPX, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"SEC", &a::SEC, &a::IMP, 2}, {"AND", &a::AND, &a::ABY, 4},
+      {"???", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 7},
+      {"???", &a::NOP, &a::IMP, 4}, {"AND", &a::AND, &a::ABX, 4},
+      {"ROL", &a::ROL, &a::ABX, 7}, {"???", &a::XXX, &a::IMP, 7},
+      {"RTI", &a::RTI, &a::IMP, 6}, {"EOR", &a::EOR, &a::IZX, 6},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 3}, {"EOR", &a::EOR, &a::ZP0, 3},
+      {"LSR", &a::LSR, &a::ZP0, 5}, {"???", &a::XXX, &a::IMP, 5},
+      {"PHA", &a::PHA, &a::IMP, 3}, {"EOR", &a::EOR, &a::IMM, 2},
+      {"LSR", &a::LSR, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 2},
+      {"JMP", &a::JMP, &a::ABS, 3}, {"EOR", &a::EOR, &a::ABS, 4},
+      {"LSR", &a::LSR, &a::ABS, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"BVC", &a::BVC, &a::REL, 2}, {"EOR", &a::EOR, &a::IZY, 5},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 4}, {"EOR", &a::EOR, &a::ZPX, 4},
+      {"LSR", &a::LSR, &a::ZPX, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"CLI", &a::CLI, &a::IMP, 2}, {"EOR", &a::EOR, &a::ABY, 4},
+      {"???", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 7},
+      {"???", &a::NOP, &a::IMP, 4}, {"EOR", &a::EOR, &a::ABX, 4},
+      {"LSR", &a::LSR, &a::ABX, 7}, {"???", &a::XXX, &a::IMP, 7},
+      {"RTS", &a::RTS, &a::IMP, 6}, {"ADC", &a::ADC, &a::IZX, 6},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 3}, {"ADC", &a::ADC, &a::ZP0, 3},
+      {"ROR", &a::ROR, &a::ZP0, 5}, {"???", &a::XXX, &a::IMP, 5},
+      {"PLA", &a::PLA, &a::IMP, 4}, {"ADC", &a::ADC, &a::IMM, 2},
+      {"ROR", &a::ROR, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 2},
+      {"JMP", &a::JMP, &a::IND, 5}, {"ADC", &a::ADC, &a::ABS, 4},
+      {"ROR", &a::ROR, &a::ABS, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"BVS", &a::BVS, &a::REL, 2}, {"ADC", &a::ADC, &a::IZY, 5},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 4}, {"ADC", &a::ADC, &a::ZPX, 4},
+      {"ROR", &a::ROR, &a::ZPX, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"SEI", &a::SEI, &a::IMP, 2}, {"ADC", &a::ADC, &a::ABY, 4},
+      {"???", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 7},
+      {"???", &a::NOP, &a::IMP, 4}, {"ADC", &a::ADC, &a::ABX, 4},
+      {"ROR", &a::ROR, &a::ABX, 7}, {"???", &a::XXX, &a::IMP, 7},
+      {"???", &a::NOP, &a::IMP, 2}, {"STA", &a::STA, &a::IZX, 6},
+      {"???", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 6},
+      {"STY", &a::STY, &a::ZP0, 3}, {"STA", &a::STA, &a::ZP0, 3},
+      {"STX", &a::STX, &a::ZP0, 3}, {"???", &a::XXX, &a::IMP, 3},
+      {"DEY", &a::DEY, &a::IMP, 2}, {"???", &a::NOP, &a::IMP, 2},
+      {"TXA", &a::TXA, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 2},
+      {"STY", &a::STY, &a::ABS, 4}, {"STA", &a::STA, &a::ABS, 4},
+      {"STX", &a::STX, &a::ABS, 4}, {"???", &a::XXX, &a::IMP, 4},
+      {"BCC", &a::BCC, &a::REL, 2}, {"STA", &a::STA, &a::IZY, 6},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 6},
+      {"STY", &a::STY, &a::ZPX, 4}, {"STA", &a::STA, &a::ZPX, 4},
+      {"STX", &a::STX, &a::ZPY, 4}, {"???", &a::XXX, &a::IMP, 4},
+      {"TYA", &a::TYA, &a::IMP, 2}, {"STA", &a::STA, &a::ABY, 5},
+      {"TXS", &a::TXS, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 5},
+      {"???", &a::NOP, &a::IMP, 5}, {"STA", &a::STA, &a::ABX, 5},
+      {"???", &a::XXX, &a::IMP, 5}, {"???", &a::XXX, &a::IMP, 5},
+      {"LDY", &a::LDY, &a::IMM, 2}, {"LDA", &a::LDA, &a::IZX, 6},
+      {"LDX", &a::LDX, &a::IMM, 2}, {"???", &a::XXX, &a::IMP, 6},
+      {"LDY", &a::LDY, &a::ZP0, 3}, {"LDA", &a::LDA, &a::ZP0, 3},
+      {"LDX", &a::LDX, &a::ZP0, 3}, {"???", &a::XXX, &a::IMP, 3},
+      {"TAY", &a::TAY, &a::IMP, 2}, {"LDA", &a::LDA, &a::IMM, 2},
+      {"TAX", &a::TAX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 2},
+      {"LDY", &a::LDY, &a::ABS, 4}, {"LDA", &a::LDA, &a::ABS, 4},
+      {"LDX", &a::LDX, &a::ABS, 4}, {"???", &a::XXX, &a::IMP, 4},
+      {"BCS", &a::BCS, &a::REL, 2}, {"LDA", &a::LDA, &a::IZY, 5},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 5},
+      {"LDY", &a::LDY, &a::ZPX, 4}, {"LDA", &a::LDA, &a::ZPX, 4},
+      {"LDX", &a::LDX, &a::ZPY, 4}, {"???", &a::XXX, &a::IMP, 4},
+      {"CLV", &a::CLV, &a::IMP, 2}, {"LDA", &a::LDA, &a::ABY, 4},
+      {"TSX", &a::TSX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 4},
+      {"LDY", &a::LDY, &a::ABX, 4}, {"LDA", &a::LDA, &a::ABX, 4},
+      {"LDX", &a::LDX, &a::ABY, 4}, {"???", &a::XXX, &a::IMP, 4},
+      {"CPY", &a::CPY, &a::IMM, 2}, {"CMP", &a::CMP, &a::IZX, 6},
+      {"???", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"CPY", &a::CPY, &a::ZP0, 3}, {"CMP", &a::CMP, &a::ZP0, 3},
+      {"DEC", &a::DEC, &a::ZP0, 5}, {"???", &a::XXX, &a::IMP, 5},
+      {"INY", &a::INY, &a::IMP, 2}, {"CMP", &a::CMP, &a::IMM, 2},
+      {"DEX", &a::DEX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 2},
+      {"CPY", &a::CPY, &a::ABS, 4}, {"CMP", &a::CMP, &a::ABS, 4},
+      {"DEC", &a::DEC, &a::ABS, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"BNE", &a::BNE, &a::REL, 2}, {"CMP", &a::CMP, &a::IZY, 5},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 4}, {"CMP", &a::CMP, &a::ZPX, 4},
+      {"DEC", &a::DEC, &a::ZPX, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"CLD", &a::CLD, &a::IMP, 2}, {"CMP", &a::CMP, &a::ABY, 4},
+      {"NOP", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 7},
+      {"???", &a::NOP, &a::IMP, 4}, {"CMP", &a::CMP, &a::ABX, 4},
+      {"DEC", &a::DEC, &a::ABX, 7}, {"???", &a::XXX, &a::IMP, 7},
+      {"CPX", &a::CPX, &a::IMM, 2}, {"SBC", &a::SBC, &a::IZX, 6},
+      {"???", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"CPX", &a::CPX, &a::ZP0, 3}, {"SBC", &a::SBC, &a::ZP0, 3},
+      {"INC", &a::INC, &a::ZP0, 5}, {"???", &a::XXX, &a::IMP, 5},
+      {"INX", &a::INX, &a::IMP, 2}, {"SBC", &a::SBC, &a::IMM, 2},
+      {"NOP", &a::NOP, &a::IMP, 2}, {"???", &a::SBC, &a::IMP, 2},
+      {"CPX", &a::CPX, &a::ABS, 4}, {"SBC", &a::SBC, &a::ABS, 4},
+      {"INC", &a::INC, &a::ABS, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"BEQ", &a::BEQ, &a::REL, 2}, {"SBC", &a::SBC, &a::IZY, 5},
+      {"???", &a::XXX, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 8},
+      {"???", &a::NOP, &a::IMP, 4}, {"SBC", &a::SBC, &a::ZPX, 4},
+      {"INC", &a::INC, &a::ZPX, 6}, {"???", &a::XXX, &a::IMP, 6},
+      {"SED", &a::SED, &a::IMP, 2}, {"SBC", &a::SBC, &a::ABY, 4},
+      {"NOP", &a::NOP, &a::IMP, 2}, {"???", &a::XXX, &a::IMP, 7},
+      {"???", &a::NOP, &a::IMP, 4}, {"SBC", &a::SBC, &a::ABX, 4},
+      {"INC", &a::INC, &a::ABX, 7}, {"???", &a::XXX, &a::IMP, 7},
   };
 }
 
 cpu6502::~cpu6502()
 {
+  // Destructor - has nothing to do
 }
 
-uint8_t cpu6502::read(uint16_t addr)
+uint8_t cpu6502::read(uint16_t a)
 {
-  return bus->read(addr, false); // read 8-bit frm bus
+  return bus->read(a, false); // read a byte from bus
 }
 
-void cpu6502::write(uint16_t addr, uint8_t data)
+void cpu6502::write(uint16_t a, uint8_t d)
 {
-  bus->write(addr, data); // write a byte to bus
+  bus->write(a, d); // write a byte to bus
 }
 
 void cpu6502::reset()
 {
   // Get address to set program counter to
-  abs_addr = 0xFFFC;
+  addr_abs = 0xFFFC;
+  uint16_t lo = read(addr_abs + 0);
+  uint16_t hi = read(addr_abs + 1);
 
-  uint16_t low = read(abs_addr + 0);
-  uint16_t high = read(abs_addr + 1);
+  pc = (hi << 8) | lo;
 
-  pc = (high << 8) | low; // setting program counter
-
-  // reset registers
+  // Reset internal registers
   a = 0;
   x = 0;
   y = 0;
-  sp = 0xFD;
+  stkp = 0xFD;
   status = 0x00 | U;
 
-  // Clear helper variable
-  abs_addr = 0x0000;
-  rel_addr = 0x0000;
+  // Clear internal helper variables
+  addr_rel = 0x0000;
+  addr_abs = 0x0000;
   fetched = 0x00;
 
   // Reset takes time
   cycles = 8;
 }
 
-void cpu6502::ireq()
+void cpu6502::irq()
 {
-  if (getFlag(I) == 0)
+  if (GetFlag(I) == 0)
   {
-    // push program counter to stack
-    write(0x0100 + sp, (pc >> 8) & 0x00FF);
-    sp--;
-    write(0x0100 + sp, pc & 0x00FF);
-    sp--;
+    // Push the program counter to the stack.
+    write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+    stkp--;
+    write(0x0100 + stkp, pc & 0x00FF);
+    stkp--;
 
-    // push status register to stack
-    setFlag(B, 0);
-    setFlag(U, 1);
-    setFlag(I, 1);
-    write(0x0100 + sp, status);
-    sp--;
+    // Then Push the status register to the stack
+    SetFlag(B, 0);
+    SetFlag(U, 1);
+    SetFlag(I, 1);
+    write(0x0100 + stkp, status);
+    stkp--;
 
-    // Read new pc location from fixed adderss
-    abs_addr = 0xFFFE;
-    uint16_t low = read(abs_addr + 0);
-    uint16_t high = read(abs_addr + 1);
-    pc = (high << 8) | low;
+    // Read new program counter location from fixed address
+    addr_abs = 0xFFFE;
+    uint16_t lo = read(addr_abs + 0);
+    uint16_t hi = read(addr_abs + 1);
+    pc = (hi << 8) | lo;
 
+    // IRQs take time
     cycles = 7;
   }
 }
 
 void cpu6502::nmi()
 {
-  write(0x0100 + sp, (pc >> 8) & 0x00FF);
-  sp--;
-  write(0x0100 + sp, pc & 0x00FF);
-  sp--;
+  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  stkp--;
+  write(0x0100 + stkp, pc & 0x00FF);
+  stkp--;
 
-  setFlag(B, 0);
-  setFlag(U, 1);
-  setFlag(I, 1);
+  SetFlag(B, 0);
+  SetFlag(U, 1);
+  SetFlag(I, 1);
+  write(0x0100 + stkp, status);
+  stkp--;
 
-  write(0x0100 + sp, status);
-  sp--;
-
-  abs_addr = 0xFFFA;
-  uint16_t low = read(abs_addr + 0);
-  uint16_t high = read(abs_addr + 1);
-  pc = (high << 8) | low;
+  addr_abs = 0xFFFA;
+  uint16_t lo = read(addr_abs + 0);
+  uint16_t hi = read(addr_abs + 1);
+  pc = (hi << 8) | lo;
 
   cycles = 8;
 }
@@ -245,169 +230,214 @@ void cpu6502::clock()
 {
   if (cycles == 0)
   {
-    opcode = read(pc); // Read next instruction
+    opcode = read(pc);
 
 #ifdef LOGMODE
     uint16_t log_pc = pc;
-#endif // LOGMODE
+#endif
 
-    // Set the unset flag bit to 1
-    setFlag(U, true);
+    //  set the unused status flag bit to 1
+    SetFlag(U, true);
 
-    // Increment pc
+    // Increment program counter, we read the opcode byte
     pc++;
 
     cycles = lookup[opcode].cycles;
 
-    // Perform fetch of intermediate data
+    // Perform fetch of intermmediate data using the
     uint8_t additional_cycle1 = (this->*lookup[opcode].addrmode)();
-    // perform operation
+
+    // Perform operation
     uint8_t additional_cycle2 = (this->*lookup[opcode].operate)();
 
     cycles += (additional_cycle1 & additional_cycle2);
 
-    setFlag(U, true);
+    SetFlag(U, true);
 
 #ifdef LOGMODE
     if (logfile == nullptr)
       logfile = fopen("cpu6502.txt", "wt");
     if (logfile != nullptr)
     {
-      fprintf(logfile, "%10d:%02d PC:%04X %s A:%02X Y:%02X %s%s%s%s%s%s%s SP:%02X\n", clock_count,
-              0, log_pc, "XXX", a, x, y, getFlag(N) ? "N" : ".", getFlag(V) ? "V" : ".",
-              getFlag(U) ? "U" : ".", getFlag(B) ? "B" : ".", getFlag(D) ? "D" : ".",
-              getFlag(I) ? "I" : ".", getFlag(Z) ?: "Z" : ".", getFlag(C) ? "C" : ".", sp);
+      fprintf(logfile,
+              "%10d:%02d PC:%04X %s A:%02X X:%02X Y:%02X %s%s%s%s%s%s%s%s "
+              "STKP:%02X\n",
+              clock_count, 0, log_pc, "XXX", a, x, y, GetFlag(N) ? "N" : ".",
+              GetFlag(V) ? "V" : ".", GetFlag(U) ? "U" : ".",
+              GetFlag(B) ? "B" : ".", GetFlag(D) ? "D" : ".",
+              GetFlag(I) ? "I" : ".", GetFlag(Z) ? "Z" : ".",
+              GetFlag(C) ? "C" : ".", stkp);
     }
-#endif // LOGMODE
+#endif
   }
+
   clock_count++;
   cycles--;
 }
 
-uint8_t cpu6502::getFlag(Flag6502 flag)
+uint8_t cpu6502::GetFlag(FLAGS6502 f)
 {
-  return ((status & flag) > 0) ? 1 : 0;
+  return ((status & f) > 0) ? 1 : 0;
 }
 
-void cpu6502::setFlag(Flag6502 flag, bool value)
+void cpu6502::SetFlag(FLAGS6502 f, bool v)
 {
-  if (value)
-    status |= flag;
+  if (v)
+    status |= f;
   else
-    status &= ~flag;
+    status &= ~f;
 }
 
-// ADDRESSING MODES ===================
-uint8_t cpu6502::IMP() // Implied
+///////////////////////////////////////////////////////////////////////////////
+// ADDRESSING MODES
+
+// Address Mode: Implied
+uint8_t cpu6502::IMP()
 {
   fetched = a;
   return 0;
 }
-uint8_t cpu6502::IMM() // Immediate
-{
-  abs_addr = pc++;
-  return 0;
-}
-uint8_t cpu6502::ZP0() // Zero Page
-{
-  abs_addr = read(pc);
-  pc++;
-  abs_addr &= 0x00FF;
-  return 0;
-}
-uint8_t cpu6502::ZPX() // Zero Page with X offset
-{
-  abs_addr = read(pc + x);
-  pc++;
-  abs_addr &= 0x00FF;
-  return 0;
-}
-uint8_t cpu6502::ZPY() // Zero Page with Y offset
-{
-  abs_addr = read(pc + y);
-  pc++;
-  abs_addr &= 0x00FF;
-  return 0;
-}
-uint8_t cpu6502::REL() // Relative
-{
-  rel_addr = read(pc);
-  pc++;
-  if (rel_addr & 0x80)
-    rel_addr |= 0xFF00;
-  return 0;
-}
-uint8_t cpu6502::ABS() // Absolute
-{
-  uint16_t low = read(pc);
-  pc++;
-  uint16_t high = read(pc);
-  pc++;
-  abs_addr = (high << 8) | low;
-  return 0;
-}
-uint8_t cpu6502::ABX() // Absolute with X offset
-{
-  uint16_t low = read(pc);
-  pc++;
-  uint16_t high = read(pc);
-  pc++;
-  abs_addr = (high << 8) | low;
-  abs_addr += x;
-  if ((abs_addr & 0xFF00) != (high << 8))
-    return 1;
-  else
-    return 0;
-}
-uint8_t cpu6502::ABY() // Absolute with Y offset
-{
-  uint16_t low = read(pc);
-  pc++;
-  uint16_t high = read(pc);
-  pc++;
-  abs_addr = (high << 8) | low;
-  abs_addr += y;
-  if ((abs_addr & 0xFF00) != (high << 8))
-    return 1;
-  else
-    return 0;
-}
-uint8_t cpu6502::IND() // Indirect
-{
-  uint16_t ptr_low = read(pc);
-  pc++;
-  uint16_t ptr_high = read(pc);
-  pc++;
-  uint16_t ptr = (ptr_high << 8) | ptr_low;
-  if (ptr_low == 0x00FF)
-  {
-    abs_addr = (read(ptr & 0xFF00) << 8) | read(ptr + 0);
-  }
-  else
-  {
-    abs_addr = (read(ptr + 1) << 8) | read(ptr + 0);
-  }
-  return 0;
-}
-uint8_t cpu6502::IZX() // Indirect X
-{
-  uint16_t t = read(pc);
-  pc++;
-  uint16_t low = read((uint16_t)(t + (uint16_t)x) & 0x00FF);
-  uint16_t high = read((uint16_t)(t + (uint16_t)x + 1) & 0x00FF);
 
-  abs_addr = (high << 8) | low;
+// Address Mode: Immediate
+uint8_t cpu6502::IMM()
+{
+  addr_abs = pc++;
   return 0;
 }
-uint8_t cpu6502::IZY() // Indirect Y
+
+// Address Mode: Zero Page
+uint8_t cpu6502::ZP0()
+{
+  addr_abs = read(pc);
+  pc++;
+  addr_abs &= 0x00FF;
+  return 0;
+}
+
+// Address Mode: Zero Page with X Offset
+uint8_t cpu6502::ZPX()
+{
+  addr_abs = (read(pc) + x);
+  pc++;
+  addr_abs &= 0x00FF;
+  return 0;
+}
+
+// Address Mode: Zero Page with Y Offset
+uint8_t cpu6502::ZPY()
+{
+  addr_abs = (read(pc) + y);
+  pc++;
+  addr_abs &= 0x00FF;
+  return 0;
+}
+
+// Address Mode: Relative
+uint8_t cpu6502::REL()
+{
+  addr_rel = read(pc);
+  pc++;
+  if (addr_rel & 0x80)
+    addr_rel |= 0xFF00;
+  return 0;
+}
+
+// Address Mode: Absolute
+uint8_t cpu6502::ABS()
+{
+  uint16_t lo = read(pc);
+  pc++;
+  uint16_t hi = read(pc);
+  pc++;
+
+  addr_abs = (hi << 8) | lo;
+
+  return 0;
+}
+
+// Address Mode: Absolute with X Offset
+uint8_t cpu6502::ABX()
+{
+  uint16_t lo = read(pc);
+  pc++;
+  uint16_t hi = read(pc);
+  pc++;
+
+  addr_abs = (hi << 8) | lo;
+  addr_abs += x;
+
+  if ((addr_abs & 0xFF00) != (hi << 8))
+    return 1;
+  else
+    return 0;
+}
+
+// Address Mode: Absolute with Y Offset
+uint8_t cpu6502::ABY()
+{
+  uint16_t lo = read(pc);
+  pc++;
+  uint16_t hi = read(pc);
+  pc++;
+
+  addr_abs = (hi << 8) | lo;
+  addr_abs += y;
+
+  if ((addr_abs & 0xFF00) != (hi << 8))
+    return 1;
+  else
+    return 0;
+}
+
+// Address Mode: Indirect
+uint8_t cpu6502::IND()
+{
+  uint16_t ptr_lo = read(pc);
+  pc++;
+  uint16_t ptr_hi = read(pc);
+  pc++;
+
+  uint16_t ptr = (ptr_hi << 8) | ptr_lo;
+
+  if (ptr_lo == 0x00FF) // Simulate page boundary hardware bug
+  {
+    addr_abs = (read(ptr & 0xFF00) << 8) | read(ptr + 0);
+  }
+  else // Behave normally
+  {
+    addr_abs = (read(ptr + 1) << 8) | read(ptr + 0);
+  }
+
+  return 0;
+}
+
+// Address Mode: Indirect X
+uint8_t cpu6502::IZX()
 {
   uint16_t t = read(pc);
   pc++;
-  uint16_t low = read(t & 0x00FF);
-  uint16_t high = read((t + 1) & 0x00FF);
-  abs_addr = (high << 8) | low;
-  abs_addr += y;
-  if ((abs_addr & 0xFF00) != (high << 8))
+
+  uint16_t lo = read((uint16_t)(t + (uint16_t)x) & 0x00FF);
+  uint16_t hi = read((uint16_t)(t + (uint16_t)x + 1) & 0x00FF);
+
+  addr_abs = (hi << 8) | lo;
+
+  return 0;
+}
+
+// Address Mode: Indirect Y
+uint8_t cpu6502::IZY()
+{
+  uint16_t t = read(pc);
+  pc++;
+
+  uint16_t lo = read(t & 0x00FF);
+  uint16_t hi = read((t + 1) & 0x00FF);
+
+  addr_abs = (hi << 8) | lo;
+  addr_abs += y;
+
+  if ((addr_abs & 0xFF00) != (hi << 8))
     return 1;
   else
     return 0;
@@ -416,319 +446,423 @@ uint8_t cpu6502::IZY() // Indirect Y
 uint8_t cpu6502::fetch()
 {
   if (!(lookup[opcode].addrmode == &cpu6502::IMP))
-    fetched = read(abs_addr);
+    fetched = read(addr_abs);
   return fetched;
 }
 
-// OPCODES IMPELEMENTATION ============
+///////////////////////////////////////////////////////////////////////////////
+// INSTRUCTION IMPLEMENTATIONS
 
-uint8_t cpu6502::ADC() // Add with Carry In
+// Instruction : Add with Carry In
+uint8_t cpu6502::ADC()
 {
   fetch();
-  temp = (uint16_t)a + (uint16_t)fetched + (uint16_t)getFlag(C);
-  setFlag(C, temp > 255);
-  setFlag(Z, (temp & 0x00FF) == 0);
-  setFlag(V, (~((uint16_t)a ^ (uint16_t)fetched) & ((uint16_t)a ^ (uint16_t)temp)) & 0x0080);
-  setFlag(N, temp & 0x00);
+  temp = (uint16_t)a + (uint16_t)fetched + (uint16_t)GetFlag(C);
+  SetFlag(C, temp > 255);
+  SetFlag(Z, (temp & 0x00FF) == 0);
+  SetFlag(
+      V, (~((uint16_t)a ^ (uint16_t)fetched) & ((uint16_t)a ^ (uint16_t)temp)) &
+             0x0080);
+  SetFlag(N, temp & 0x80);
   a = temp & 0x00FF;
   return 1;
 }
-uint8_t cpu6502::AND() // Bitwise logic AND
+
+// Instruction: Subtraction with Borrow In
+uint8_t cpu6502::SBC()
+{
+  fetch();
+  uint16_t value = ((uint16_t)fetched) ^ 0x00FF;
+  temp = (uint16_t)a + value + (uint16_t)GetFlag(C);
+  SetFlag(C, temp & 0xFF00);
+  SetFlag(Z, ((temp & 0x00FF) == 0));
+  SetFlag(V, (temp ^ (uint16_t)a) & (temp ^ value) & 0x0080);
+  SetFlag(N, temp & 0x0080);
+  a = temp & 0x00FF;
+  return 1;
+}
+
+// Instruction: Bitwise Logic AND
+uint8_t cpu6502::AND()
 {
   fetch();
   a = a & fetched;
-  setFlag(Z, a == 0x00);
-  setFlag(N, a & 0x80);
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
   return 1;
 }
-uint8_t cpu6502::ASL() // Arithmetic Shift Left
+
+// Instruction: Arithmetic Shift Left
+uint8_t cpu6502::ASL()
 {
   fetch();
   temp = (uint16_t)fetched << 1;
-  setFlag(C, (temp & 0xFF00) > 0);
-  setFlag(Z, (temp & 0x00FF) == 0x00);
-  setFlag(N, temp & 0x80);
+  SetFlag(C, (temp & 0xFF00) > 0);
+  SetFlag(Z, (temp & 0x00FF) == 0x00);
+  SetFlag(N, temp & 0x80);
   if (lookup[opcode].addrmode == &cpu6502::IMP)
     a = temp & 0x00FF;
   else
-    write(abs_addr, temp & 0x00FF);
+    write(addr_abs, temp & 0x00FF);
   return 0;
 }
-uint8_t cpu6502::BCC() // Branch if Carry Clear
+
+// Instruction: Branch if Carry Clear
+uint8_t cpu6502::BCC()
 {
-  if (getFlag(C) == 0)
+  if (GetFlag(C) == 0)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::BCS() // Branch if Carry Set
+
+// Instruction: Branch if Carry Set
+uint8_t cpu6502::BCS()
 {
-  if (getFlag(C) == 1)
+  if (GetFlag(C) == 1)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::BEQ() // Branch if Equal
+
+// Instruction: Branch if Equal
+uint8_t cpu6502::BEQ()
 {
-  if (getFlag(Z) == 1)
+  if (GetFlag(Z) == 1)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::BIT() // Bit Test
+
+uint8_t cpu6502::BIT()
 {
   fetch();
   temp = a & fetched;
-  setFlag(Z, (temp & 0x00FF) == 0x00);
-  setFlag(N, fetched & (1 << 7));
-  setFlag(V, fetched & (1 << 6));
+  SetFlag(Z, (temp & 0x00FF) == 0x00);
+  SetFlag(N, fetched & (1 << 7));
+  SetFlag(V, fetched & (1 << 6));
   return 0;
 }
-uint8_t cpu6502::BMI() // Branch if Minus(Negative)
+
+// Instruction: Branch if Negative
+uint8_t cpu6502::BMI()
 {
-  if (getFlag(N) == 1)
+  if (GetFlag(N) == 1)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::BNE() // Branch if not Equal
+
+// Instruction: Branch if Not Equal
+uint8_t cpu6502::BNE()
 {
-  if (getFlag(Z) == 0)
+  if (GetFlag(Z) == 0)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::BPL() // Branch if Positive
+
+// Instruction: Branch if Positive
+uint8_t cpu6502::BPL()
 {
-  if (getFlag(N) == 0)
+  if (GetFlag(N) == 0)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::BRK() // Break
+
+// Instruction: Break
+uint8_t cpu6502::BRK()
 {
   pc++;
-  setFlag(I, 1);
-  write(0x0100 + sp, (pc >> 8) & 0x00FF);
-  sp--;
-  write(0x0100 + sp, pc & 0x00FF);
-  sp--;
-  setFlag(B, 1);
-  write(0x0100 + sp, status);
-  sp--;
+
+  SetFlag(I, 1);
+  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  stkp--;
+  write(0x0100 + stkp, pc & 0x00FF);
+  stkp--;
+
+  SetFlag(B, 1);
+  write(0x0100 + stkp, status);
+  stkp--;
+  SetFlag(B, 0);
+
   pc = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
   return 0;
 }
-uint8_t cpu6502::BVC() // Branch if Overflow Clear
+
+// Instruction: Branch if Overflow Clear
+uint8_t cpu6502::BVC()
 {
-  if (getFlag(V) == 0)
+  if (GetFlag(V) == 0)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::BVS() // Branch if Overflow Set
+
+// Instruction: Branch if Overflow Set
+uint8_t cpu6502::BVS()
 {
-  if (getFlag(V) == 1)
+  if (GetFlag(V) == 1)
   {
     cycles++;
-    abs_addr = pc + rel_addr;
-    if ((abs_addr & 0xFF00) != (pc & 0xFF00))
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
       cycles++;
-    pc = abs_addr;
+
+    pc = addr_abs;
   }
   return 0;
 }
-uint8_t cpu6502::CLC() // Clear Carry Flag
+
+// Instruction: Clear Carry Flag
+uint8_t cpu6502::CLC()
 {
-  setFlag(C, false);
+  SetFlag(C, false);
   return 0;
 }
-uint8_t cpu6502::CLD() // Clear Decimal Flag
+
+// Instruction: Clear Decimal Flag
+uint8_t cpu6502::CLD()
 {
-  setFlag(D, false);
+  SetFlag(D, false);
   return 0;
 }
-uint8_t cpu6502::CLI() // Clear Interrupt Flag
+
+// Instruction: Disable Interrupts / Clear Interrupt Flag
+uint8_t cpu6502::CLI()
 {
-  setFlag(I, false);
+  SetFlag(I, false);
   return 0;
 }
-uint8_t cpu6502::CLV() // Clear Overflow Flag
+
+// Instruction: Clear Overflow Flag
+uint8_t cpu6502::CLV()
 {
-  setFlag(V, false);
+  SetFlag(V, false);
   return 0;
 }
-uint8_t cpu6502::CMP() // Compare Accumulator
+
+// Instruction: Compare Accumulator
+uint8_t cpu6502::CMP()
 {
   fetch();
   temp = (uint16_t)a - (uint16_t)fetched;
-  setFlag(C, a >= fetched);
-  setFlag(Z, (temp & 0x00FF) == 0x0000);
-  setFlag(N, temp & 0x0080);
+  SetFlag(C, a >= fetched);
+  SetFlag(Z, (temp & 0x00FF) == 0x0000);
+  SetFlag(N, temp & 0x0080);
   return 1;
 }
-uint8_t cpu6502::CPX() // Compare X Register
+
+// Instruction: Compare X Register
+uint8_t cpu6502::CPX()
 {
   fetch();
   temp = (uint16_t)x - (uint16_t)fetched;
-  setFlag(C, x >= fetched);
-  setFlag(Z, (temp & 0x00FF) == 0x0000);
-  setFlag(N, temp & 0x0080);
-  return 1;
+  SetFlag(C, x >= fetched);
+  SetFlag(Z, (temp & 0x00FF) == 0x0000);
+  SetFlag(N, temp & 0x0080);
+  return 0;
 }
-uint8_t cpu6502::CPY() // Compare Y Register
+
+// Instruction: Compare Y Register
+uint8_t cpu6502::CPY()
 {
   fetch();
   temp = (uint16_t)y - (uint16_t)fetched;
-  setFlag(C, y >= fetched);
-  setFlag(Z, (temp & 0x00FF) == 0x0000);
-  setFlag(N, temp & 0x0080);
-  return 1;
+  SetFlag(C, y >= fetched);
+  SetFlag(Z, (temp & 0x00FF) == 0x0000);
+  SetFlag(N, temp & 0x0080);
+  return 0;
 }
-uint8_t cpu6502::DEC() // Decrement value at Memory location
+
+// Instruction: Decrement Value at Memory Location
+uint8_t cpu6502::DEC()
 {
   fetch();
   temp = fetched - 1;
-  write(abs_addr, temp & 0x00FF);
-  setFlag(Z, (temp & 0x00FF) == 0x0000);
-  setFlag(N, temp & 0x0080);
+  write(addr_abs, temp & 0x00FF);
+  SetFlag(Z, (temp & 0x00FF) == 0x0000);
+  SetFlag(N, temp & 0x0080);
   return 0;
 }
-uint8_t cpu6502::DEX() // Decrement X Register
+
+// Instruction: Decrement X Register
+uint8_t cpu6502::DEX()
 {
   x--;
-  setFlag(Z, x == 0x00);
-  setFlag(N, x & 0x80);
+  SetFlag(Z, x == 0x00);
+  SetFlag(N, x & 0x80);
   return 0;
 }
-uint8_t cpu6502::DEY() // Decrement Y Register
+
+// Instruction: Decrement Y Register
+uint8_t cpu6502::DEY()
 {
   y--;
-  setFlag(Z, y == 0x00);
-  setFlag(N, y & 0x80);
+  SetFlag(Z, y == 0x00);
+  SetFlag(N, y & 0x80);
   return 0;
 }
-uint8_t cpu6502::EOR() // Bitwise Logic XOR
+
+// Instruction: Bitwise Logic XOR
+uint8_t cpu6502::EOR()
 {
   fetch();
-  a ^= fetched;
-  setFlag(Z, a == 0x00);
-  setFlag(N, a & 0x80);
+  a = a ^ fetched;
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
   return 1;
 }
-uint8_t cpu6502::INC() // Increment Value at Memory Location
+
+// Instruction: Increment Value at Memory Location
+uint8_t cpu6502::INC()
 {
   fetch();
   temp = fetched + 1;
-  write(abs_addr, temp & 0x00FF);
-  setFlag(Z, (temp & 0x00FF) == 0x0000);
-  setFlag(N, temp & 0x0080);
+  write(addr_abs, temp & 0x00FF);
+  SetFlag(Z, (temp & 0x00FF) == 0x0000);
+  SetFlag(N, temp & 0x0080);
   return 0;
 }
-uint8_t cpu6502::INX() // Increment X Register
+
+// Instruction: Increment X Register
+uint8_t cpu6502::INX()
 {
   x++;
-  setFlag(Z, x == 0x00);
-  setFlag(N, x & 0x80);
+  SetFlag(Z, x == 0x00);
+  SetFlag(N, x & 0x80);
   return 0;
 }
-uint8_t cpu6502::INY() // Increment Y Register
+
+// Instruction: Increment Y Register
+uint8_t cpu6502::INY()
 {
   y++;
-  setFlag(Z, y == 0x00);
-  setFlag(N, y & 0x80);
+  SetFlag(Z, y == 0x00);
+  SetFlag(N, y & 0x80);
   return 0;
 }
-uint8_t cpu6502::JMP() // Jump to Location
+
+// Instruction: Jump To Location
+uint8_t cpu6502::JMP()
 {
-  pc = abs_addr;
+  pc = addr_abs;
   return 0;
 }
-uint8_t cpu6502::JSR() // Jump to Sub-Routine
+
+// Instruction: Jump To Sub-Routine
+uint8_t cpu6502::JSR()
 {
   pc--;
-  write(0x0100 + sp, (pc >> 8) & 0x00FF);
-  sp--;
-  write(0x0100 + sp, pc & 0x00FF);
-  sp--;
-  pc = abs_addr;
+
+  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  stkp--;
+  write(0x0100 + stkp, pc & 0x00FF);
+  stkp--;
+
+  pc = addr_abs;
   return 0;
 }
-uint8_t cpu6502::LDA() // Load Accumulator
+
+// Instruction: Load The Accumulator
+uint8_t cpu6502::LDA()
 {
   fetch();
   a = fetched;
-  setFlag(Z, a == 0x00);
-  setFlag(N, a & 0x80);
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
   return 1;
 }
-uint8_t cpu6502::LDX() // Load X Register
+
+// Instruction: Load The X Register
+uint8_t cpu6502::LDX()
 {
   fetch();
   x = fetched;
-  setFlag(Z, x == 0x00);
-  setFlag(N, x & 0x80);
+  SetFlag(Z, x == 0x00);
+  SetFlag(N, x & 0x80);
   return 1;
 }
-uint8_t cpu6502::LDY() // Load Y Register
+
+// Instruction: Load The Y Register
+uint8_t cpu6502::LDY()
 {
   fetch();
   y = fetched;
-  setFlag(Z, y == 0x00);
-  setFlag(N, y & 0x80);
+  SetFlag(Z, y == 0x00);
+  SetFlag(N, y & 0x80);
   return 1;
 }
-uint8_t cpu6502::LSR() // Logical Shift Right
+
+// Instruction: Logical Shift Right
+uint8_t cpu6502::LSR()
 {
   fetch();
-  setFlag(C, fetched & 0x0001);
+  SetFlag(C, fetched & 0x0001);
   temp = fetched >> 1;
-  setFlag(Z, (temp & 0x00FF) == 0x0000);
-  setFlag(N, temp & 0x0080);
+  SetFlag(Z, (temp & 0x00FF) == 0x0000);
+  SetFlag(N, temp & 0x0080);
   if (lookup[opcode].addrmode == &cpu6502::IMP)
     a = temp & 0x00FF;
   else
-    write(abs_addr, temp & 0x00FF);
+    write(addr_abs, temp & 0x00FF);
   return 0;
 }
-uint8_t cpu6502::NOP() // No Operation
+
+// Instruction : No Operation
+uint8_t cpu6502::NOP()
 {
-  // NOP has no effect; it merely wastes space and CPU cycles.
   switch (opcode)
   {
   case 0x1C:
@@ -742,186 +876,223 @@ uint8_t cpu6502::NOP() // No Operation
   }
   return 0;
 }
-uint8_t cpu6502::ORA() // Bitwise Logical OR
+
+// Instruction: Bitwise Logic OR
+uint8_t cpu6502::ORA()
 {
   fetch();
-  a |= fetched;
-  setFlag(Z, a == 0x00);
-  setFlag(N, a & 0x80);
+  a = a | fetched;
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
   return 1;
 }
-uint8_t cpu6502::PHA() // Push Accumulator to Stack
+
+// Instruction: Push Accumulator to Stack
+uint8_t cpu6502::PHA()
 {
-  write(0x0100 + sp, a);
-  sp--;
+  write(0x0100 + stkp, a);
+  stkp--;
   return 0;
 }
-uint8_t cpu6502::PHP() // Push Status Register to Stack
+
+// Instruction: Push Status Register to Stack
+uint8_t cpu6502::PHP()
 {
-  write(0x0100 + sp, status | B | U);
-  setFlag(B, 0);
-  setFlag(U, 0);
-  sp--;
+  write(0x0100 + stkp, status | B | U);
+  SetFlag(B, 0);
+  SetFlag(U, 0);
+  stkp--;
   return 0;
 }
-uint8_t cpu6502::PLA() // Pop Accumulator off Stack
+
+// Instruction: Pop Accumulator off Stack
+uint8_t cpu6502::PLA()
 {
-  sp++;
-  a = read(0x0100 + sp);
-  setFlag(Z, a == 0x00);
-  setFlag(N, a & 0x80);
+  stkp++;
+  a = read(0x0100 + stkp);
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
   return 0;
 }
-uint8_t cpu6502::PLP() // Pop Status Register off Stack
+
+// Instruction: Pop Status Register off Stack
+uint8_t cpu6502::PLP()
 {
-  sp++;
-  status = read(0x0100 + sp);
-  setFlag(U, 1);
+  stkp++;
+  status = read(0x0100 + stkp);
+  SetFlag(U, 1);
   return 0;
 }
-uint8_t cpu6502::ROL() // Rotate Left
+
+// Instruction : Rotate Left
+uint8_t cpu6502::ROL()
 {
   fetch();
-  temp = (uint16_t)(fetched << 1) | getFlag(C);
-  setFlag(C, temp & 0xFF00);
-  setFlag(Z, (temp & 0x00FF) == 0x0000);
-  setFlag(N, temp & 0x0080);
+  temp = (uint16_t)(fetched << 1) | GetFlag(C);
+  SetFlag(C, temp & 0xFF00);
+  SetFlag(Z, (temp & 0x00FF) == 0x0000);
+  SetFlag(N, temp & 0x0080);
   if (lookup[opcode].addrmode == &cpu6502::IMP)
     a = temp & 0x00FF;
   else
-    write(abs_addr, temp & 0x00FF);
+    write(addr_abs, temp & 0x00FF);
   return 0;
 }
-uint8_t cpu6502::ROR() // Rotate Right
+
+// Instruction : Rotate Right
+uint8_t cpu6502::ROR()
 {
   fetch();
-  temp = (uint16_t)(getFlag(C) << 7) | (fetched >> 1);
-  setFlag(C, fetched & 0x01);
-  setFlag(Z, (temp & 0x00FF) == 0x00);
-  setFlag(N, temp & 0x0080);
+  temp = (uint16_t)(GetFlag(C) << 7) | (fetched >> 1);
+  SetFlag(C, fetched & 0x01);
+  SetFlag(Z, (temp & 0x00FF) == 0x00);
+  SetFlag(N, temp & 0x0080);
   if (lookup[opcode].addrmode == &cpu6502::IMP)
     a = temp & 0x00FF;
   else
-    write(abs_addr, temp & 0x00FF);
+    write(addr_abs, temp & 0x00FF);
   return 0;
 }
-uint8_t cpu6502::RTI() // Return From Interrupt
+
+// Instruction : Return from Interrupt
+uint8_t cpu6502::RTI()
 {
-  sp++;
-  status = read(0x0100 + sp);
+  stkp++;
+  status = read(0x0100 + stkp);
   status &= ~B;
   status &= ~U;
-  sp++;
-  pc = (uint16_t)read(0x0100 + sp);
-  sp++;
-  pc |= (uint16_t)read(0x0100 + sp) << 8;
+
+  stkp++;
+  pc = (uint16_t)read(0x0100 + stkp);
+  stkp++;
+  pc |= (uint16_t)read(0x0100 + stkp) << 8;
   return 0;
 }
-uint8_t cpu6502::RTS() // Return From Sub-Routine
+
+// Instruction: Return From Sub-Routine
+uint8_t cpu6502::RTS()
 {
-  sp++;
-  pc = (uint16_t)read(0x0100 + sp);
-  sp++;
-  pc |= (uint16_t)read(0x0100 + sp) << 8;
+  stkp++;
+  pc = (uint16_t)read(0x0100 + stkp);
+  stkp++;
+  pc |= (uint16_t)read(0x0100 + stkp) << 8;
+
   pc++;
   return 0;
 }
-uint8_t cpu6502::SBC() // Subtract wuth Borrow In
+
+// Instruction: Set Carry Flag
+uint8_t cpu6502::SEC()
 {
-  fetch();
-  uint16_t value = ((uint16_t)fetched) ^ 0x00FF;
-  temp = (uint16_t)a + value + (uint16_t)getFlag(C);
-  setFlag(C, temp & 0xFF00);
-  setFlag(Z, ((temp & 0xFF00) == 0));
-  setFlag(V, (temp ^ (uint16_t)a) & (temp ^ value) & 0x0000);
-  setFlag(N, temp & 0x0080);
-  a = temp & 0x00FF;
-  return 1;
-}
-uint8_t cpu6502::SEC() // Set Carry Flag
-{
-  setFlag(C, true);
+  SetFlag(C, true);
   return 0;
 }
-uint8_t cpu6502::SED() // Set Decimal Flag
+
+// Instruction: Set Decimal Flag
+uint8_t cpu6502::SED()
 {
-  setFlag(D, true);
+  SetFlag(D, true);
   return 0;
 }
-uint8_t cpu6502::SEI() // Set Interrupt Flag
+
+// Instruction: Set Interrupt Flag / Enable Interrupts
+uint8_t cpu6502::SEI()
 {
-  setFlag(I, true);
+  SetFlag(I, true);
   return 0;
 }
-uint8_t cpu6502::STA() // Store Accumulator at Address
+
+// Instruction: Store Accumulator at Address
+uint8_t cpu6502::STA()
 {
-  write(abs_addr, a);
+  write(addr_abs, a);
   return 0;
 }
-uint8_t cpu6502::STX() // Store X register at Address
+
+// Instruction: Store X Register at Address
+uint8_t cpu6502::STX()
 {
-  write(abs_addr, x);
+  write(addr_abs, x);
   return 0;
 }
-uint8_t cpu6502::STY() // Store Y register at Address
+
+// Instruction: Store Y Register at Address
+uint8_t cpu6502::STY()
 {
-  write(abs_addr, y);
+  write(addr_abs, y);
   return 0;
 }
-uint8_t cpu6502::TAX() // Transfer Accumulator to X Register
+
+// Instruction: Transfer Accumulator to X Register
+uint8_t cpu6502::TAX()
 {
   x = a;
-  setFlag(Z, x == 0x00);
-  setFlag(N, x & 0x80);
+  SetFlag(Z, x == 0x00);
+  SetFlag(N, x & 0x80);
   return 0;
 }
-uint8_t cpu6502::TAY() // Transfer Accumulator to Y Register
+
+// Instruction: Transfer Accumulator to Y Register
+uint8_t cpu6502::TAY()
 {
   y = a;
-  setFlag(Z, y == 0x00);
-  setFlag(N, y & 0x80);
+  SetFlag(Z, y == 0x00);
+  SetFlag(N, y & 0x80);
   return 0;
 }
-uint8_t cpu6502::TSX() // Transfer Stack Pointer to X Register
+
+// Instruction: Transfer Stack Pointer to X Register
+uint8_t cpu6502::TSX()
 {
-  x = sp;
-  setFlag(Z, x == 0x00);
-  setFlag(N, x & 0x80);
+  x = stkp;
+  SetFlag(Z, x == 0x00);
+  SetFlag(N, x & 0x80);
   return 0;
 }
-uint8_t cpu6502::TXA() // Transfer X Register to Accumulator
+
+// Instruction: Transfer X Register to Accumulator
+uint8_t cpu6502::TXA()
 {
   a = x;
-  setFlag(Z, a == 0x00);
-  setFlag(N, a & 0x80);
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
   return 0;
 }
-uint8_t cpu6502::TXS() // Transfer X Register to Stack Pointer
+
+// Instruction: Transfer X Register to Stack Pointer
+uint8_t cpu6502::TXS()
 {
-  sp = x;
+  stkp = x;
   return 0;
 }
-uint8_t cpu6502::TYA() // Transfer Y Register to Accumulator
+
+// Instruction: Transfer Y Register to Accumulator
+uint8_t cpu6502::TYA()
 {
   a = y;
-  setFlag(Z, a == 0x00);
-  setFlag(N, a & 0x80);
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
   return 0;
 }
-uint8_t cpu6502::XXX() // Capture Illegal opcodes
+
+// This function captures illegal opcodes
+uint8_t cpu6502::XXX()
 {
   return 0;
 }
+
+// HELPER FUNCTIONS
 
 bool cpu6502::complete()
 {
   return cycles == 0;
 }
 
-std::map<uint16_t, std::string> cpu6502::disassemble(uint16_t nStart, uint16_t nStop)
+std::map<uint16_t, std::string> cpu6502::disassemble(uint16_t nStart,
+                                                     uint16_t nStop)
 {
   uint32_t addr = nStart;
-  uint8_t value = 0x00, low = 0x00, high = 0x00;
+  uint8_t value = 0x00, lo = 0x00, hi = 0x00;
   std::map<uint16_t, std::string> mapLines;
   uint16_t line_addr = 0;
 
@@ -936,97 +1107,99 @@ std::map<uint16_t, std::string> cpu6502::disassemble(uint16_t nStart, uint16_t n
   while (addr <= (uint32_t)nStop)
   {
     line_addr = addr;
+
     // Prefix line with instruction address
-    std::string sInt = "$" + hex(addr, 4) + ": ";
-    // Read instruction and gets it's readable name
+    std::string sInst = "$" + hex(addr, 4) + ": ";
+
+    // Read instruction, and get its readable name
     uint8_t opcode = bus->read(addr, true);
     addr++;
-    sInt += lookup[opcode].name + " ";
-
+    sInst += lookup[opcode].name + " ";
     if (lookup[opcode].addrmode == &cpu6502::IMP)
     {
-      sInt += " {IMP}";
+      sInst += " {IMP}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::IMM)
     {
       value = bus->read(addr, true);
       addr++;
-      sInt += "#$" + hex(value, 2) + " {IMM}";
+      sInst += "#$" + hex(value, 2) + " {IMM}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::ZP0)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = 0x00;
-      sInt += "$" + hex(low, 2) + " {ZP0}";
+      hi = 0x00;
+      sInst += "$" + hex(lo, 2) + " {ZP0}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::ZPX)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = 0x00;
-      sInt += "$" + hex(low, 2) + ", X {ZPX}";
+      hi = 0x00;
+      sInst += "$" + hex(lo, 2) + ", X {ZPX}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::ZPY)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = 0x00;
-      sInt += "$" + hex(low, 2) + ", Y {ZPY}";
+      hi = 0x00;
+      sInst += "$" + hex(lo, 2) + ", Y {ZPY}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::IZX)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = 0x00;
-      sInt += "($" + hex(low, 2) + ", X) {IZX}";
+      hi = 0x00;
+      sInst += "($" + hex(lo, 2) + ", X) {IZX}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::IZY)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = 0x00;
-      sInt += "($" + hex(low, 2) + "), Y {IZY}";
+      hi = 0x00;
+      sInst += "($" + hex(lo, 2) + "), Y {IZY}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::ABS)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = bus->read(addr, true);
+      hi = bus->read(addr, true);
       addr++;
-      sInt += "$" + hex((uint16_t)(high << 8) | low, 4) + " {ABS}";
+      sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + " {ABS}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::ABX)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = bus->read(addr, true);
+      hi = bus->read(addr, true);
       addr++;
-      sInt += "$" + hex((uint16_t)(high << 8) | low, 4) + ", X {ABX}";
+      sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", X {ABX}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::ABY)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = bus->read(addr, true);
+      hi = bus->read(addr, true);
       addr++;
-      sInt += "$" + hex((uint16_t)(high << 8) | low, 4) + ", Y {ABY}";
+      sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", Y {ABY}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::IND)
     {
-      low = bus->read(addr, true);
+      lo = bus->read(addr, true);
       addr++;
-      high = bus->read(addr, true);
+      hi = bus->read(addr, true);
       addr++;
-      sInt += "($" + hex((uint16_t)(high << 8) | low, 4) + ") {IND}";
+      sInst += "($" + hex((uint16_t)(hi << 8) | lo, 4) + ") {IND}";
     }
     else if (lookup[opcode].addrmode == &cpu6502::REL)
     {
       value = bus->read(addr, true);
       addr++;
-      sInt += "$" + hex(value, 2) + "[$" + hex(addr + value, 4) + "] {REL}";
+      sInst += "$" + hex(value, 2) + " [$" + hex(addr + value, 4) + "] {REL}";
     }
-    mapLines[line_addr] = sInt;
+    mapLines[line_addr] = sInst;
   }
+
   return mapLines;
 }
