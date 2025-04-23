@@ -15,11 +15,11 @@ find_package(PNG REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 
-set(RESOURCE_PATH "${CMAKE_SOURCE_DIR}")
+set(RESOURCE_PATH "${CMAKE_SOURCE_DIR}/res")
 add_compile_definitions(RESOURCE_PATH="${RESOURCE_PATH}")
 
 
-file(GLOB_RECURSE SOURCE_FILES Sources/*.cpp)
+file(GLOB_RECURSE SOURCE_FILES Source/*.cpp)
 add_executable(nes ${SOURCE_FILES})
 
 INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIRS} ${PNG_INCLUDE_DIRS})

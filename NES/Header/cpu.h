@@ -17,12 +17,12 @@ public:
   ~cpu6502();
 
 public:
-  uint8_t a = 0x00;      // Accumulator Register
-  uint8_t x = 0x00;      // X Register
-  uint8_t y = 0x00;      // Y Register
-  uint8_t stkp = 0x00;   // Stack Pointer (points to location on bus)
-  uint16_t pc = 0x0000;  // Program Counter
-  uint8_t status = 0x00; // Status Register
+  uint8_t a{0x00};      // Accumulator Register
+  uint8_t x{0x00};      // X Register
+  uint8_t y{0x00};      // Y Register
+  uint8_t stkp{0x00};   // Stack Pointer (points to location on bus)
+  uint16_t pc{0x0000};  // Program Counter
+  uint8_t status{0x00}; // Status Register
 
   void reset();
   void irq();
